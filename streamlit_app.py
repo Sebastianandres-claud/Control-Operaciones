@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 
 # Título de tu aplicación
-st.title("Mi Dashboard en la Nube")
+st.title("Control Operaciones")
 
 # Si usas GitHub para los datos (recomendado):
 DATA_URL = (
