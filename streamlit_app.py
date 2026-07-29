@@ -6,7 +6,7 @@ st.title("Mi Dashboard en la Nube")
 
 # Si usas GitHub para los datos (recomendado):
 DATA_URL = (
-    "https://raw.githubusercontent.com/Sebastianandres-claud/Control-Operaciones/main/tus_datos.xlsx"
+    "https://raw.githubusercontent.com/Sebastianandres-claud/Control-Operaciones/main/data/Alarma 29-07-2026 11-26.xlsx"
 )
 
 
