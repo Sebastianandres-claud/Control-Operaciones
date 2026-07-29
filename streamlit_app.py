@@ -1,29 +1,23 @@
 import pandas as pd
 import streamlit as st
 
-# Título de tu aplicación
 st.title("Control Operaciones")
 
-# Si usas GitHub para los datos (recomendado):
-DATA_URL = (
-    "https://raw.githubusercontent.com/Sebastianandres-claud/Control-Operaciones/main/data/Alarma29-07-202611-26.xlsx"
-)
+# URL limpia sin saltos de línea ocultos
+DATA_URL = "https://raw.githubusercontent.com/Sebastianandres-claud/Control-Operaciones/main/data/Alarma29-07-202611-26.xlsx"
 
 
-# Cargar datos con caché para que la app sea rápida
 @st.cache_data
 def cargar_datos(url):
-  # Usa pd.read_csv(url) si tu archivo es CSV, o pd.read_excel(url) si es Excel
+  # Leemos el archivo Excel desde la URL de GitHub
   df = pd.read_excel(url)
   return df
 
 
-# Cargar el DataFrame
-df = cargar_datos(DATA_URL)
-
-# Mostrar un resumen o la tabla interactiva
-st.subheader("Vista previa de los datos")
-st.dataframe(df)
-
-# Ejemplo de métrica básica
-st.metric(label="Total de registros", value=len(df))
+try:
+  df = cargar_datos(DATA_URL)
+  st.success("¡Datos cargados correctamente desde GitHub!")
+  st.dataframe(df)
+  st.metric(label="Total de registros", value=len(df))
+except Exception as e:
+  st.error(f"Ocurrió un error al cargar el archivo: {e}")
