@@ -12,9 +12,10 @@ def obtener_lista_archivos():
   api_url = "https://api.github.com/repos/Sebastianandres-claud/Control-Operaciones/contents/data"
   response = requests.get(api_url)
   if response.status_code == 200:
-    # Filtramos solo los archivos Excel
     return [
-        f["name"] for f in response.json() if f["name"].endswith(".xlsx") or f["name"].endswith(".xls")
+        f["name"]
+        for f in response.json()
+        if f["name"].endswith(".xlsx") or f["name"].endswith(".xls")
     ]
   return []
 
@@ -33,18 +34,49 @@ def cargar_archivo_individual(nombre_archivo):
 archivos_disponibles = obtener_lista_archivos()
 
 if archivos_disponibles:
-  # Crear un menú desplegable (selectbox) en la barra lateral o principal
   archivo_seleccionado = st.selectbox(
       "Selecciona el archivo que deseas analizar:", archivos_disponibles
   )
 
-  # Cargar y mostrar el archivo elegido
   if archivo_seleccionado:
     df = cargar_archivo_individual(archivo_seleccionado)
-    st.success(f"Mostrando datos de: {archivo_seleccionado}")
+
+    # ==========================================
+    # ZONA DE LIMPIEZA Y DATACLEANING
+    # ==========================================
+
+    # Regla: Si el archivo empieza por "26-"
+    if archivo_seleccionado.startswith("26-"):
+      # 1. Borrar filas donde todas las columnas estén vacías (NaN)
+      df = df.dropna(how="all")
+
+      # 2. (Opcional) Borrar filas si una columna clave está vacía, por ejemplo:
+      # df = df.dropna(subset=['Nombre_De_Columna'])
+
+      st.info(
+          "🧹 Limpieza aplicada: Se eliminaron las filas vacías para este"
+          " archivo."
+      )
+
+    # ==========================================
+    # ZONA DE CÁLCULOS Y MÉTRICAS
+    # ==========================================
+    st.subheader(f"Análisis de: {archivo_seleccionado}")
+
+    # Muestra métricas básicas
+    col1, col2 = st.columns(2)
+    with col1:
+      st.metric(label="Total de registros", value=len(df))
+
+    with col2:
+      # Ejemplo de cálculo numérico (puedes cambiar 'Columna_Numerica' por una real de tu Excel)
+      # if 'Columna_Numerica' in df.columns:
+      #     total_suma = df['Columna_Numerica'].sum()
+      #     st.metric(label="Suma Total", value=total_suma)
+      pass
+
+    # Mostrar la tabla final limpia
     st.dataframe(df)
 
-    # Aquí puedes aplicar la limpieza específica para ESTE formato si lo deseas
-    st.metric(label="Total de registros", value=len(df))
 else:
   st.warning("No se encontraron archivos en la carpeta data.")
