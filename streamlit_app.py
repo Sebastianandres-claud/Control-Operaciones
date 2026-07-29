@@ -6,7 +6,7 @@ st.title("Control Operaciones")
 
 # Si usas GitHub para los datos (recomendado):
 DATA_URL = (
-    "https://raw.githubusercontent.com/Sebastianandres-claud/Control-Operaciones/main/data/Alarma 29-07-2026 11-26.xlsx"
+    "https://raw.githubusercontent.com/Sebastianandres-claud/Control-Operaciones/main/data/Alarma29-07-202611-26.xlsx"
 )
 
 
