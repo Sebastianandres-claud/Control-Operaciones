@@ -33,36 +33,33 @@ def cargar_archivo_individual(nombre_archivo):
 def cargar_y_limpiar_vessel(nombre_archivo):
     df_v = cargar_archivo_individual(nombre_archivo)
     if df_v is not None:
-        st.write("--- DIAGNÓSTICO VESSEL ---")
-        st.write("Columnas crudas en Vessel:", df_v.columns.tolist())
-        st.write("Primeras filas crudas de Vessel:", df_v.head(5))
-
-        # 1. Ajuste de cabecera y filas (Asegúrate de que coincida con cómo viene tu Excel de Vessel)
+        # 1. Ajuste de cabecera y filas
         if len(df_v) > 4:
-            df_v = df_v.iloc[3:].reset_index(drop=True)
-            df_v.columns = df_v.iloc[0]
             df_v = df_v.iloc[4:].reset_index(drop=True)
+            df_v.columns = df_v.iloc[0]
+            df_v = df_v.iloc[1:].reset_index(drop=True)
             
+        # Limpiar nombres de columnas (quitar espacios extra)
         df_v.columns = [str(col).strip() for col in df_v.columns]
-        st.write("Columnas limpias de Vessel:", df_v.columns.tolist())
-
-        # 2. Filtrar Phase == "Working" (Revisemos qué valores tiene realmente)
-        if "Phase" in df_v.columns:
-            st.write("Valores únicos en Phase:", df_v["Phase"].dropna().unique())
-            df_v = df_v[df_v["Phase"].astype(str).str.strip() == "Working"]
+        
+        # Buscar la columna Phase de forma flexible
+        col_phase = next((col for col in df_v.columns if col.lower() == "phase"), None)
+        if col_phase:
+            df_v = df_v[df_v[col_phase].astype(str).str.strip().str.lower() == "working"]
         else:
-            st.warning("⚠️ No se encontró la columna 'Phase' en Vessel.")
+            st.warning(" No se encontró la columna 'Phase' en Vessel.")
             
-        # 3. Excluir Vessel == "GENERICA"
-        if "Vessel Name" in df_v.columns:
-            df_v = df_v[df_v["Vessel"].astype(str).str.strip() != "GENERICA"]
+        # Buscar la columna de la nave de forma flexible (incluyendo "Vessel Name")
+        col_vessel = next((col for col in df_v.columns if col.lower() in ["vessel", "nave", "vessel name"]), None)
+        if col_vessel:
+            df_v = df_v[df_v[col_vessel].astype(str).str.strip().str.upper() != "GENERICA"]
+            # Renombramos la columna encontrada a "Vessel" para que coincida perfectamente con el cruce
+            if col_vessel != "Vessel":
+                df_v = df_v.rename(columns={col_vessel: "Vessel"})
         else:
-            st.warning("⚠️ No se encontró la columna 'Vessel' en Vessel.")
+            st.warning(" No se encontró la columna de naves en el archivo Vessel.")
             
         df_v = df_v.dropna(how="all")
-        st.write(f"Filas finales de Vessel tras filtros: {len(df_v)}")
-        st.write("----------------------------")
-        
         return df_v
     return None
 
