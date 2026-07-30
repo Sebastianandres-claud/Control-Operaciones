@@ -115,9 +115,9 @@ if nombre_vessel and nombre_alarma:
     if archivo_seleccionado == nombre_alarma:
         
         # 1. Crear una copia o vista filtrada del DataFrame de Alarma donde Estado sea exactamente "desconectado"
-        if "Estado" in df.columns:
+        if "Conectado" in df.columns:
             # Filtramos asegurándonos de manejar posibles variaciones de mayúsculas/minúsculas o espacios
-            df_alarma_filtrado = df[df["Estado"].astype(str).str.strip().str.lower() == "desconectado"].copy()
+            df_alarma_filtrado = df[df["Conectado"].astype(str).str.strip().str.lower() == "desconectado"].copy()
         else:
             df_alarma_filtrado = pd.DataFrame()
             st.warning("No se encontró la columna 'Estado' en el archivo de Alarma.")
