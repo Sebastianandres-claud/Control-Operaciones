@@ -29,29 +29,40 @@ def cargar_archivo_individual(nombre_archivo):
     return pd.read_excel(io.BytesIO(response.content))
   return None
 
-# Función para cargar y limpiar automáticamente el archivo Vessel
 @st.cache_data
 def cargar_y_limpiar_vessel(nombre_archivo):
     df_v = cargar_archivo_individual(nombre_archivo)
     if df_v is not None:
-        # 1. Eliminar las primeras filas de metadata si las tiene (ajusta el índice si es necesario)
+        st.write("--- DIAGNÓSTICO VESSEL ---")
+        st.write("Columnas crudas en Vessel:", df_v.columns.tolist())
+        st.write("Primeras filas crudas de Vessel:", df_v.head(5))
+
+        # 1. Ajuste de cabecera y filas (Asegúrate de que coincida con cómo viene tu Excel de Vessel)
         if len(df_v) > 4:
-            df_v = df_v.iloc[4:].reset_index(drop=True)
+            df_v = df_v.iloc[3:].reset_index(drop=True)
             df_v.columns = df_v.iloc[0]
-            df_v = df_v.iloc[1:].reset_index(drop=True)
+            df_v = df_v.iloc[4:].reset_index(drop=True)
             
-        # Limpieza de nombres de columnas duplicadas por seguridad
-        df_v.columns = [str(col) for col in df_v.columns]
-        
-        # 2. Filtrar Phase == "Working"
+        df_v.columns = [str(col).strip() for col in df_v.columns]
+        st.write("Columnas limpias de Vessel:", df_v.columns.tolist())
+
+        # 2. Filtrar Phase == "Working" (Revisemos qué valores tiene realmente)
         if "Phase" in df_v.columns:
+            st.write("Valores únicos en Phase:", df_v["Phase"].dropna().unique())
             df_v = df_v[df_v["Phase"].astype(str).str.strip() == "Working"]
+        else:
+            st.warning("⚠️ No se encontró la columna 'Phase' en Vessel.")
             
         # 3. Excluir Vessel == "GENERICA"
         if "Vessel" in df_v.columns:
             df_v = df_v[df_v["Vessel"].astype(str).str.strip() != "GENERICA"]
+        else:
+            st.warning("⚠️ No se encontró la columna 'Vessel' en Vessel.")
             
         df_v = df_v.dropna(how="all")
+        st.write(f"Filas finales de Vessel tras filtros: {len(df_v)}")
+        st.write("----------------------------")
+        
         return df_v
     return None
 
