@@ -62,8 +62,8 @@ if archivos_disponibles:
       df = df.dropna(how="all")
 
     if archivo_seleccionado.startswith("Alarma"):
-      df.columns = df.iloc[3]
-      df = df.iloc[4:].reset_index(drop=True)
+      df.columns = df.iloc[2]
+      df = df.iloc[3:].reset_index(drop=True)
 
     # ==========================================
     # CORREGIR COLUMNAS DUPLICADAS
