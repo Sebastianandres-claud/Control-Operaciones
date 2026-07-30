@@ -1,45 +1,62 @@
-import io
-import pandas as pd
-import requests
 import streamlit as st
+import pandas as pd
+import os
 
-st.title("Control Operaciones")
+# Configuración de la página
+st.set_page_config(page_title="Control de Operaciones", layout="wide")
 
+# Directorio en GitHub donde están los archivos
+GITHUB_DATA_DIR = "data"
 
-# Función para listar los archivos de la carpeta en GitHub
 @st.cache_data
-def obtener_lista_archivos():
-  api_url = "https://api.github.com/repos/Sebastianandres-claud/Control-Operaciones/contents/data"
-  response = requests.get(api_url)
-  if response.status_code == 200:
-    return [
-        f["name"]
-        for f in response.json()
-        if f["name"].endswith(".xlsx") or f["name"].endswith(".xls")
-    ]
-  return []
+def listar_archivos_github():
+    """Simula o lista los archivos disponibles en la carpeta data del repositorio."""
+    # Si usas una ruta local para pruebas o la carpeta data en el repo:
+    if os.path.exists(GITHUB_DATA_DIR):
+        return [f for f in os.listdir(GITHUB_DATA_DIR) if f.endswith(('.xlsx', '.xls', '.csv'))]
+    return []
 
-
-# Función para cargar un archivo específico en base a su nombre
 @st.cache_data
 def cargar_archivo_individual(nombre_archivo):
-  url = f"https://raw.githubusercontent.com/Sebastianandres-claud/Control-Operaciones/main/data/{nombre_archivo}"
-  response = requests.get(url)
-  if response.status_code == 200:
-    return pd.read_excel(io.BytesIO(response.content))
-  return None
+    """Carga un archivo individual desde la carpeta de datos."""
+    ruta = os.path.join(GITHUB_DATA_DIR, nombre_archivo)
+    try:
+        if nombre_archivo.endswith('.csv'):
+            return pd.read_csv(ruta)
+        else:
+            return pd.read_excel(ruta)
+    except Exception as e:
+        st.error(f"Error al cargar {nombre_archivo}: {e}")
+        return None
 
-@st.cache_data
+def buscar_alarma():
+    archivos = listar_archivos_github()
+    for f in archivos:
+        if "alarma" in f.lower():
+            return f
+    return None
+
+def buscar_vessel():
+    archivos = listar_archivos_github()
+    for f in archivos:
+        if "vessel" in f.lower():
+            return f
+    return None
+
+# ==========================================
+# FUNCIÓN BLINDADA PARA VESSEL
+# ==========================================
+@st.cache_data(show_spinner=False)
 def cargar_y_limpiar_vessel(nombre_archivo):
     df_v = cargar_archivo_individual(nombre_archivo)
     if df_v is not None:
-        # 1. Ajuste de cabecera y filas
+        # 1. Ajuste de cabecera y filas (ajusta si tu archivo Vessel requiere otro índice)
         if len(df_v) > 4:
             df_v = df_v.iloc[4:].reset_index(drop=True)
             df_v.columns = df_v.iloc[0]
             df_v = df_v.iloc[1:].reset_index(drop=True)
             
-        # Limpiar nombres de columnas (quitar espacios extra)
+        # Limpiar espacios en los nombres de las columnas
         df_v.columns = [str(col).strip() for col in df_v.columns]
         
         # Buscar la columna Phase de forma flexible
@@ -49,11 +66,10 @@ def cargar_y_limpiar_vessel(nombre_archivo):
         else:
             st.warning(" No se encontró la columna 'Phase' en Vessel.")
             
-        # Buscar la columna de la nave de forma flexible (incluyendo "Vessel Name")
+        # Buscar la columna de la nave de forma flexible (incluye Vessel, Nave o Vessel Name)
         col_vessel = next((col for col in df_v.columns if col.lower() in ["vessel", "nave", "vessel name"]), None)
         if col_vessel:
             df_v = df_v[df_v[col_vessel].astype(str).str.strip().str.upper() != "GENERICA"]
-            # Renombramos la columna encontrada a "Vessel" para que coincida perfectamente con el cruce
             if col_vessel != "Vessel":
                 df_v = df_v.rename(columns={col_vessel: "Vessel"})
         else:
@@ -63,110 +79,71 @@ def cargar_y_limpiar_vessel(nombre_archivo):
         return df_v
     return None
 
-# Funciones para búsqueda automática
-def buscar_vessel():
-  return next(
-      (f for f in archivos_disponibles if f.lower().startswith("vessel")), None
-  )
-
-
-def buscar_alarma():
-  return next(
-      (f for f in archivos_disponibles if f.lower().startswith("alarma")), None
-  )
-
-
-# Obtener la lista de archivos disponibles en la nube
-archivos_disponibles = obtener_lista_archivos()
-
-if archivos_disponibles:
-  archivo_seleccionado = st.selectbox(
-      "Selecciona el archivo que deseas analizar:", archivos_disponibles
-  )
-
-  if archivo_seleccionado:
-    df = cargar_archivo_individual(archivo_seleccionado)
-
-    # ==========================================
-    # ZONA DE LIMPIEZA Y DATACLEANING
-    # ==========================================
-
-    if archivo_seleccionado.startswith("26-"):
-      df = df.dropna(how="all")
-
-    if archivo_seleccionado.startswith("Alarma"):
-      df.columns = df.iloc[2]
-      df = df.iloc[3:].reset_index(drop=True)
-
-    # ==========================================
-    # CORREGIR COLUMNAS DUPLICADAS
-    # ==========================================
-    df.columns = [str(col) for col in df.columns]
-    cols = pd.Series(df.columns)
-    for dup in cols[cols.duplicated()].unique():
-      cols[cols == dup] = [
-          f"{dup}_{i}" if i != 0 else dup
-          for i in range(sum(cols == dup))
-      ]
-    df.columns = cols
-
-
 # ==========================================
-# CRUCE Y FILTRADO AUTOMÁTICO (ALARMA + VESSEL)
+# INTERFAZ PRINCIPAL STREAMLIT
 # ==========================================
-nombre_vessel = buscar_vessel()
-nombre_alarma = buscar_alarma()
+st.title("Control de Operaciones - Automatización")
 
-if nombre_vessel and nombre_alarma:
-  if archivo_seleccionado == nombre_alarma:
+archivos_disponibles = listar_archivos_github()
 
-    if "Estado Ctr" in df.columns:
-      estado_limpio = df["Estado Ctr"].astype(str).str.strip()
-      df_alarma_filtrado = df[estado_limpio == "Desconectado"].copy()
-    else:
-      df_alarma_filtrado = pd.DataFrame()
-      st.warning(" No se encontró la columna 'Estado Ctr' en el archivo de Alarma.")
-
-    if not df_alarma_filtrado.empty:
-      # Llamamos a nuestra nueva función dedicada a limpiar Vessel
-      df_vessel = cargar_y_limpiar_vessel(nombre_vessel)
-
-      if df_vessel is not None and not df_vessel.empty:
-        columna_alarma = "Nave"
-        columna_vessel = "Vessel"
-
-        if columna_alarma in df_alarma_filtrado.columns and columna_vessel in df_vessel.columns:
-          df_resultado = pd.merge(
-              df_alarma_filtrado,
-              df_vessel,
-              left_on=columna_alarma,
-              right_on=columna_vessel,
-              how="left",
-              suffixes=("_alarma", "_vessel"),
-          )
-          df = df_resultado
-          st.success(f" Visualización creada: Alarma (Desconectado) cruzado con {nombre_vessel}")
-        else:
-          st.warning(f" No se encontró la columna '{columna_alarma}' en Alarma o '{columna_vessel}' en Vessel.")
-      else:
-        st.warning(" El archivo Vessel quedó vacío después de aplicar los filtros (Phase/GENERICA).")
-    else:
-      st.info("ℹ No hay registros con Estado 'Desconectado' para realizar el cruce.")
-
-    # ==========================================
-    # ZONA DE CÁLCULOS Y MÉTRICAS
-    # ==========================================
-    st.subheader(f"Análisis de: {archivo_seleccionado}")
-
-    col1, col2 = st.columns(2)
-    with col1:
-      st.metric(label="Total de registros", value=len(df))
-
-    with col2:
-      pass
-
-    # Mostrar la tabla final limpia y cruzada
-    st.dataframe(df)
-
+if not archivos_disponibles:
+    st.warning(f"No se encontraron archivos en la carpeta '{GITHUB_DATA_DIR}'.")
 else:
-  st.warning("No se encontraron archivos en la carpeta data.")
+    # Selector de archivos
+    archivo_seleccionado = st.selectbox("Seleccione el archivo a visualizar:", archivos_disponibles)
+    
+    if archivo_seleccionado:
+        df = cargar_archivo_individual(archivo_seleccionado)
+        
+        if df is not None:
+            # ==========================================
+            # LIMPIEZA DE ALARMA (Si es el archivo correspondiente)
+            # ==========================================
+            nombre_alarma = buscar_alarma()
+            nombre_vessel = buscar_vessel()
+            
+            if nombre_alarma and archivo_seleccionado == nombre_alarma:
+                if len(df) > 2:
+                    df.columns = df.iloc[2]
+                    df = df.iloc[3:].reset_index(drop=True)
+                
+                # Limpiar nombres de columnas de alarma
+                df.columns = [str(col).strip() for col in df.columns]
+                
+                # Filtrar "Desconectado" en Estado Ctr
+                if "Estado Ctr" in df.columns:
+                    estado_limpio = df["Estado Ctr"].astype(str).str.strip()
+                    df_alarma_filtrado = df[estado_limpio == "Desconectado"].copy()
+                else:
+                    df_alarma_filtrado = pd.DataFrame()
+                    st.warning(" No se encontró la columna 'Estado Ctr' en el archivo de Alarma.")
+                
+                # Cruce automático con Vessel si hay datos filtrados
+                if not df_alarma_filtrado.empty and nombre_vessel:
+                    df_vessel = cargar_y_limpiar_vessel(nombre_vessel)
+                    
+                    if df_vessel is not None and not df_vessel.empty:
+                        columna_alarma = "Nave"
+                        columna_vessel = "Vessel"
+                        
+                        if columna_alarma in df_alarma_filtrado.columns and columna_vessel in df_vessel.columns:
+                            df_resultado = pd.merge(
+                                df_alarma_filtrado,
+                                df_vessel,
+                                left_on=columna_alarma,
+                                right_on=columna_vessel,
+                                how="left",
+                                suffixes=('_alarma', '_vessel')
+                            )
+                            df = df_resultado
+                            st.success(f" Visualización creada: Alarma (Desconectado) cruzado con {nombre_vessel}")
+                        else:
+                            st.warning(f" No se encontró la columna '{columna_alarma}' en Alarma o '{columna_vessel}' en Vessel.")
+                    else:
+                        st.warning(" El archivo Vessel quedó vacío después de los filtros.")
+                else:
+                    st.info("ℹ No hay registros con Estado 'Desconectado' para realizar el cruce.")
+                    df = df_alarma_filtrado
+
+            # Mostrar la tabla final resultante en la app
+            st.dataframe(df)
