@@ -52,7 +52,7 @@ if archivos_disponibles:
 
       # 2. (Opcional) Borrar filas si una columna clave está vacía, por ejemplo:
       # df = df.dropna(subset=['Nombre_De_Columna'])
-    if "alarma" in archivo_seleccionado.lower():
+    if archivo_seleccionado.startswith("Alarma"):
       if len(df) > 4:
         df = df.iloc[4:].reset_index(drop=True)
         # Convertir la nueva primera fila en los encabezados oficiales
