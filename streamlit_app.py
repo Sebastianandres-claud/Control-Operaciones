@@ -54,7 +54,7 @@ def cargar_y_limpiar_vessel(nombre_archivo):
             st.warning("⚠️ No se encontró la columna 'Phase' en Vessel.")
             
         # 3. Excluir Vessel == "GENERICA"
-        if "Vessel" in df_v.columns:
+        if "Vessel Name" in df_v.columns:
             df_v = df_v[df_v["Vessel"].astype(str).str.strip() != "GENERICA"]
         else:
             st.warning("⚠️ No se encontró la columna 'Vessel' en Vessel.")
