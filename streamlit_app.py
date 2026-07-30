@@ -96,13 +96,7 @@ else:
         df = cargar_archivo_individual(archivo_seleccionado)
         
         if df is not None:
-            # ==========================================
-            # LIMPIEZA DE ALARMA (Si es el archivo correspondiente)
-            # ==========================================
-            nombre_alarma = buscar_alarma()
-            nombre_vessel = buscar_vessel()
-            
-            if nombre_alarma and archivo_seleccionado == nombre_alarma:
+          if nombre_alarma and archivo_seleccionado == nombre_alarma:
                 if len(df) > 2:
                     df.columns = df.iloc[2]
                     df = df.iloc[3:].reset_index(drop=True)
@@ -110,13 +104,20 @@ else:
                 # Limpiar nombres de columnas de alarma
                 df.columns = [str(col).strip() for col in df.columns]
                 
-                # Filtrar "Desconectado" en Estado Ctr
+                # 1. Filtrar "Desconectado" en Estado Ctr
                 if "Estado Ctr" in df.columns:
                     estado_limpio = df["Estado Ctr"].astype(str).str.strip()
                     df_alarma_filtrado = df[estado_limpio == "Desconectado"].copy()
                 else:
                     df_alarma_filtrado = pd.DataFrame()
-                    st.warning(" No se encontró la columna 'Estado Ctr' en el archivo de Alarma.")
+                    st.warning("⚠️ No se encontró la columna 'Estado Ctr' en el archivo de Alarma.")
+                
+                # 2. NUEVO: Filtrar para que la columna "Posición" empiece únicamente con "Y-"
+                if not df_alarma_filtrado.empty and "Posición" in df_alarma_filtrado.columns:
+                    posicion_limpia = df_alarma_filtrado["Posición"].astype(str).str.strip()
+                    df_alarma_filtrado = df_alarma_filtrado[posicion_limpia.str.startswith("Y-")].copy()
+                elif "Posición" not in df_alarma_filtrado.columns:
+                    st.warning("⚠️ No se encontró la columna 'Posición' en el archivo de Alarma.")
                 
                 # Cruce automático con Vessel si hay datos filtrados
                 if not df_alarma_filtrado.empty and nombre_vessel:
@@ -136,11 +137,14 @@ else:
                                 suffixes=('_alarma', '_vessel')
                             )
                             df = df_resultado
-                            st.success(f" Visualización creada: Alarma (Desconectado) cruzado con {nombre_vessel}")
+                            st.success(f"🔗 Visualización creada: Alarma (Desconectado + Posición Y-) cruzado con {nombre_vessel}")
                         else:
-                            st.warning(f" No se encontró la columna '{columna_alarma}' en Alarma o '{columna_vessel}' en Vessel.")
+                            st.warning(f"⚠️ No se encontró la columna '{columna_alarma}' en Alarma o '{columna_vessel}' en Vessel.")
                     else:
-                        st.warning(" El archivo Vessel quedó vacío después de los filtros.")
+                        st.warning("⚠️ El archivo Vessel quedó vacío después de los filtros.")
+                else:
+                    st.info("ℹ️ No hay registros que cumplan con los filtros de 'Desconectado' y posición 'Y-' para realizar el cruce.")
+                    df = df_alarma_filtrado
                 else:
                     st.info("ℹ No hay registros con Estado 'Desconectado' para realizar el cruce.")
                     df = df_alarma_filtrado
