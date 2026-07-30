@@ -110,7 +110,7 @@ if archivos_disponibles:
                 df_vessel["Phase"].astype(str).str.strip() == "Working"
             ]
 
-          if "Vessel" in df_vessel.columns:
+          if "Vessel Name" in df_vessel.columns:
             df_vessel = df_vessel[
                 df_vessel["Vessel"].astype(str).str.strip() != "GENERICA"
             ]
@@ -118,7 +118,7 @@ if archivos_disponibles:
           df_vessel = df_vessel.dropna(how="all")
 
           columna_alarma = "Nave"
-          columna_vessel = "Vessel"
+          columna_vessel = "Vessel Name"
 
           if (
               columna_alarma in df_alarma_filtrado.columns
