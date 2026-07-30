@@ -52,11 +52,13 @@ if archivos_disponibles:
 
       # 2. (Opcional) Borrar filas si una columna clave está vacía, por ejemplo:
       # df = df.dropna(subset=['Nombre_De_Columna'])
-
-      st.info(
-          "🧹 Limpieza aplicada: Se eliminaron las filas vacías para este"
-          " archivo."
-      )
+    if "alarma" in archivo_seleccionado.lower():
+      if len(df) > 4:
+        df = df.iloc[4:].reset_index(drop=True)
+        # Convertir la nueva primera fila en los encabezados oficiales
+        df.columns = df.iloc[0]
+        # Eliminar esa fila que ya subió a ser cabecera y reiniciar los índices
+        df = df.iloc[1:].reset_index(drop=True)
 
     # ==========================================
     # ZONA DE CÁLCULOS Y MÉTRICAS
