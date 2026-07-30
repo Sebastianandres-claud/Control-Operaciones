@@ -61,6 +61,21 @@ if archivos_disponibles:
         df = df.iloc[1:].reset_index(drop=True)
 
     # ==========================================
+    # CORREGIR COLUMNAS DUPLICADAS
+    # ==========================================
+    # Convierte todas las columnas a string para evitar errores de tipo
+    df.columns = [str(col) for col in df.columns]
+
+    # Detecta y renombra columnas duplicadas añadiendo un número consecutivo
+    cols = pd.Series(df.columns)
+    for dup in cols[cols.duplicated()].unique():
+      cols[cols == dup] = [
+          f"{dup}_{i}" if i != 0 else dup
+          for i in range(sum(cols == dup))
+      ]
+    df.columns = cols
+
+    # ==========================================
     # ZONA DE CÁLCULOS Y MÉTRICAS
     # ==========================================
     st.subheader(f"Análisis de: {archivo_seleccionado}")
