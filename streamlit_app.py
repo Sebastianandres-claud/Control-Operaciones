@@ -53,8 +53,8 @@ if archivos_disponibles:
       # 2. (Opcional) Borrar filas si una columna clave está vacía, por ejemplo:
       # df = df.dropna(subset=['Nombre_De_Columna'])
     if archivo_seleccionado.startswith("Alarma"):
-      if len(df) > 4:
-        df = df.iloc[4:].reset_index(drop=True)
+      if len(df) > 3:
+        df = df.iloc[3:].reset_index(drop=True)
         # Convertir la nueva primera fila en los encabezados oficiales
         df.columns = df.iloc[0]
         # Eliminar esa fila que ya subió a ser cabecera y reiniciar los índices
@@ -97,3 +97,68 @@ if archivos_disponibles:
 
 else:
   st.warning("No se encontraron archivos en la carpeta data.")
+
+# ==========================================
+# CRUCE Y FILTRADO AUTOMÁTICO (ALARMA + VESSEL)
+# ==========================================
+
+def buscar_vessel():
+    return next((f for f in archivos_disponibles if f.lower().startswith("vessel")), None)
+
+def buscar_alarma():
+    return next((f for f in archivos_disponibles if f.lower().startswith("alarma")), None)
+
+nombre_vessel = buscar_vessel()
+nombre_alarma = buscar_alarma()
+
+if nombre_vessel and nombre_alarma:
+    if archivo_seleccionado == nombre_alarma:
+        
+        # 1. Crear una copia o vista filtrada del DataFrame de Alarma donde Estado sea exactamente "desconectado"
+        if "Estado" in df.columns:
+            # Filtramos asegurándonos de manejar posibles variaciones de mayúsculas/minúsculas o espacios
+            df_alarma_filtrado = df[df["Estado"].astype(str).str.strip().str.lower() == "desconectado"].copy()
+        else:
+            df_alarma_filtrado = pd.DataFrame()
+            st.warning("No se encontró la columna 'Estado' en el archivo de Alarma.")
+
+        if not df_alarma_filtrado.empty:
+            # 2. Cargar y limpiar el archivo Vessel
+            df_vessel = cargar_archivo_individual(nombre_vessel)
+            
+            if len(df_vessel) > 4:
+                df_vessel = df_vessel.iloc[4:].reset_index(drop=True)
+                df_vessel.columns = df_vessel.iloc[0]
+                df_vessel = df_vessel.iloc[1:].reset_index(drop=True)
+
+            if "Phase" in df_vessel.columns:
+                df_vessel = df_vessel[df_vessel["Phase"].astype(str).str.strip() == "Working"]
+            
+            if "Vessel" in df_vessel.columns:
+                df_vessel = df_vessel[df_vessel["Vessel"].astype(str).str.strip() != "GENERICA"]
+
+            df_vessel = df_vessel.dropna(how="all")
+
+            # 3. Realizar el merge usando la nueva visualización filtrada
+            columna_alarma = "Nave"
+            columna_vessel = "Vessel"
+
+            if columna_alarma in df_alarma_filtrado.columns and columna_vessel in df_vessel.columns:
+                df_resultado = pd.merge(
+                    df_alarma_filtrado,
+                    df_vessel,
+                    left_on=columna_alarma,
+                    right_on=columna_vessel,
+                    how="left",
+                    suffixes=("_alarma", "_vessel")
+                )
+                
+                # Asignamos el resultado a df para que la vista de Streamlit muestre esta nueva visualización
+                df = df_resultado
+                st.success(f" Visualización creada: Alarma (Estado: Desconectado) cruzado con {nombre_vessel}")
+            else:
+                st.warning(f"No se encontró la columna '{columna_alarma}' en Alarma o '{columna_vessel}' en Vessel para el cruce.")
+        else:
+            st.info(" No hay registros con Estado 'desconectado' para realizar el cruce.")
+else:
+    st.info("ℹAsegúrate de tener un archivo 'Alarma' y un archivo 'Vessel' disponibles para el cruce automático.")
