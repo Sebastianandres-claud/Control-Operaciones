@@ -77,11 +77,20 @@ if archivos_disponibles:
       ]
     df.columns = cols
 
+
     # ==========================================
     # CRUCE Y FILTRADO AUTOMÁTICO (ALARMA + VESSEL)
     # ==========================================
     nombre_vessel = buscar_vessel()
     nombre_alarma = buscar_alarma()
+
+    # --- DIAGNÓSTICO TEMPORAL ---
+    st.write("Columnas detectadas en el DataFrame:", df.columns.tolist())
+    if "Estado Ctr" in df.columns:
+      st.write(
+          "Valores únicos en Estado Ctr:", df["Estado Ctr"].dropna().unique()
+      )
+# ----------------------------
 
     if nombre_vessel and nombre_alarma:
       if archivo_seleccionado == nombre_alarma:
