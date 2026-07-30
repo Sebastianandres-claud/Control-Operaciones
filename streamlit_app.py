@@ -100,10 +100,9 @@ if archivos_disponibles:
         if not df_alarma_filtrado.empty:
           df_vessel = cargar_archivo_individual(nombre_vessel)
 
-          if len(df_vessel) > 4:
-            df_vessel = df_vessel.iloc[4:].reset_index(drop=True)
-            df_vessel.columns = df_vessel.iloc[0]
-            df_vessel = df_vessel.iloc[1:].reset_index(drop=True)
+        if archivo_seleccionado.startswith("Vessel"):
+          df.columns = df.iloc[2]
+          df = df.iloc[3:].reset_index(drop=True)
 
           if "Phase" in df_vessel.columns:
             df_vessel = df_vessel[
