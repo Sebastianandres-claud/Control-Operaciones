@@ -29,6 +29,31 @@ def cargar_archivo_individual(nombre_archivo):
     return pd.read_excel(io.BytesIO(response.content))
   return None
 
+# Función para cargar y limpiar automáticamente el archivo Vessel
+@st.cache_data
+def cargar_y_limpiar_vessel(nombre_archivo):
+    df_v = cargar_archivo_individual(nombre_archivo)
+    if df_v is not None:
+        # 1. Eliminar las primeras filas de metadata si las tiene (ajusta el índice si es necesario)
+        if len(df_v) > 4:
+            df_v = df_v.iloc[4:].reset_index(drop=True)
+            df_v.columns = df_v.iloc[0]
+            df_v = df_v.iloc[1:].reset_index(drop=True)
+            
+        # Limpieza de nombres de columnas duplicadas por seguridad
+        df_v.columns = [str(col) for col in df_v.columns]
+        
+        # 2. Filtrar Phase == "Working"
+        if "Phase" in df_v.columns:
+            df_v = df_v[df_v["Phase"].astype(str).str.strip() == "Working"]
+            
+        # 3. Excluir Vessel == "GENERICA"
+        if "Vessel" in df_v.columns:
+            df_v = df_v[df_v["Vessel"].astype(str).str.strip() != "GENERICA"]
+            
+        df_v = df_v.dropna(how="all")
+        return df_v
+    return None
 
 # Funciones para búsqueda automática
 def buscar_vessel():
@@ -92,26 +117,13 @@ if nombre_vessel and nombre_alarma:
       df_alarma_filtrado = df[estado_limpio == "Desconectado"].copy()
     else:
       df_alarma_filtrado = pd.DataFrame()
-      st.warning("No se encontró la columna 'Estado Ctr' en el archivo de Alarma.")
+      st.warning(" No se encontró la columna 'Estado Ctr' en el archivo de Alarma.")
 
-    # SOLO procedemos con Vessel si el filtrado de alarma encontró datos y existe la variable
     if not df_alarma_filtrado.empty:
-      df_vessel = cargar_archivo_individual(nombre_vessel)
+      # Llamamos a nuestra nueva función dedicada a limpiar Vessel
+      df_vessel = cargar_y_limpiar_vessel(nombre_vessel)
 
-      if df_vessel is not None:
-        if len(df_vessel) > 4:
-          df_vessel = df_vessel.iloc[4:].reset_index(drop=True)
-          df_vessel.columns = df_vessel.iloc[0]
-          df_vessel = df_vessel.iloc[1:].reset_index(drop=True)
-
-        if "Phase" in df_vessel.columns:
-          df_vessel = df_vessel[df_vessel["Phase"].astype(str).str.strip() == "Working"]
-
-        if "Vessel" in df_vessel.columns:
-          df_vessel = df_vessel[df_vessel["Vessel"].astype(str).str.strip() != "GENERICA"]
-
-        df_vessel = df_vessel.dropna(how="all")
-
+      if df_vessel is not None and not df_vessel.empty:
         columna_alarma = "Nave"
         columna_vessel = "Vessel"
 
@@ -128,6 +140,8 @@ if nombre_vessel and nombre_alarma:
           st.success(f" Visualización creada: Alarma (Desconectado) cruzado con {nombre_vessel}")
         else:
           st.warning(f" No se encontró la columna '{columna_alarma}' en Alarma o '{columna_vessel}' en Vessel.")
+      else:
+        st.warning(" El archivo Vessel quedó vacío después de aplicar los filtros (Phase/GENERICA).")
     else:
       st.info("ℹ No hay registros con Estado 'Desconectado' para realizar el cruce.")
 
