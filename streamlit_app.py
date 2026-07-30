@@ -88,8 +88,8 @@ if archivos_disponibles:
         if "Estado Ctr" in df.columns:
           # CORREGIDO: Comparar contra "desconectado" (minúscula por el .str.lower())
           df_alarma_filtrado = df[
-              df["Estado Ctr"].astype(str).str.strip().str.lower()
-              == "desconectado"
+              df["Estado Ctr"].astype(str).str.strip()
+              == "Desconectado"
           ].copy()
         else:
           df_alarma_filtrado = pd.DataFrame()
