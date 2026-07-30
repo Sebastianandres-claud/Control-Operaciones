@@ -95,15 +95,17 @@ if archivos_disponibles:
     if nombre_vessel and nombre_alarma:
       if archivo_seleccionado == nombre_alarma:
         if "Estado Ctr" in df.columns:
-            # Filtramos para traer TODO lo que sea DISTINTO de "Conectado"
-            df_alarma_filtrado = df[
-                df["Estado Ctr"].astype(str).str.strip() != "Conectado"
-            ].copy()
+                    # Forzamos limpieza de espacios en toda la serie y comparamos
+                    estado_limpio = df["Estado Ctr"].astype(str).str.strip()
+                    df_alarma_filtrado = df[estado_limpio == "Desconectado"].copy()
         else:
-          df_alarma_filtrado = pd.DataFrame()
-          st.warning(
-              "No se encontró la columna 'Estado Ctr' en el archivo de Alarma."
-          )
+            df_alarma_filtrado = pd.DataFrame()
+            st.warning("No se encontró la columna 'Estado Ctr' en el archivo de Alarma.")
+      else:
+        df_alarma_filtrado = pd.DataFrame()
+        st.warning(
+            "No se encontró la columna 'Estado Ctr' en el archivo de Alarma."
+        )
 
         if not df_alarma_filtrado.empty:
           df_vessel = cargar_archivo_individual(nombre_vessel)
