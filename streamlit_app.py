@@ -52,9 +52,9 @@ def cargar_y_limpiar_vessel(nombre_archivo):
     if df_v is not None:
         # 1. Ajuste de cabecera y filas (ajusta si tu archivo Vessel requiere otro índice)
         if len(df_v) > 4:
-            df_v = df_v.iloc[4:].reset_index(drop=True)
+            df_v = df_v.iloc[3:].reset_index(drop=True)
             df_v.columns = df_v.iloc[0]
-            df_v = df_v.iloc[1:].reset_index(drop=True)
+            df_v = df_v.iloc[4:].reset_index(drop=True)
             
         # Limpiar espacios en los nombres de las columnas
         df_v.columns = [str(col).strip() for col in df_v.columns]
