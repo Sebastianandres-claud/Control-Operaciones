@@ -53,12 +53,10 @@ if archivos_disponibles:
       # 2. (Opcional) Borrar filas si una columna clave está vacía, por ejemplo:
       # df = df.dropna(subset=['Nombre_De_Columna'])
     if archivo_seleccionado.startswith("Alarma"):
-      if len(df) > 3:
-        df = df.iloc[3:].reset_index(drop=True)
-        # Convertir la nueva primera fila en los encabezados oficiales
-        df.columns = df.iloc[0]
-        # Eliminar esa fila que ya subió a ser cabecera y reiniciar los índices
-        df = df.iloc[1:].reset_index(drop=True)
+      # 1. Definimos la fila de índice 3 (la 4ta fila) como los nombres de las columnas
+      df.columns = df.iloc[3]
+      # 2. Nos quedamos únicamente con todo lo que está DESPUÉS de esa fila (desde el índice 4 en adelante)
+      df = df.iloc[4:].reset_index(drop=True)
 
     # ==========================================
     # CORREGIR COLUMNAS DUPLICADAS
