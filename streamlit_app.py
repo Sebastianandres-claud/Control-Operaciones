@@ -78,76 +78,58 @@ if archivos_disponibles:
     df.columns = cols
 
 
-    # ==========================================
-    # CRUCE Y FILTRADO AUTOMÁTICO (ALARMA + VESSEL)
-    # ==========================================
-    nombre_vessel = buscar_vessel()
-    nombre_alarma = buscar_alarma()
+# ==========================================
+# CRUCE Y FILTRADO AUTOMÁTICO (ALARMA + VESSEL)
+# ==========================================
+nombre_vessel = buscar_vessel()
+nombre_alarma = buscar_alarma()
 
-    if nombre_vessel and nombre_alarma:
-      if archivo_seleccionado == nombre_alarma:
-        if "Estado Ctr" in df.columns:
-                    # Forzamos limpieza de espacios en toda la serie y comparamos
-                    estado_limpio = df["Estado Ctr"].astype(str).str.strip()
-                    df_alarma_filtrado = df[estado_limpio == "Desconectado"].copy()
-        else:
-            df_alarma_filtrado = pd.DataFrame()
-            st.warning("No se encontró la columna 'Estado Ctr' en el archivo de Alarma.")
-      else:
-        df_alarma_filtrado = pd.DataFrame()
-        st.warning(
-            "No se encontró la columna 'Estado Ctr' en el archivo de Alarma."
-        )
+if nombre_vessel and nombre_alarma:
+  if archivo_seleccionado == nombre_alarma:
 
-        if not df_alarma_filtrado.empty:
-          df_vessel = cargar_archivo_individual(nombre_vessel)
+    if "Estado Ctr" in df.columns:
+      estado_limpio = df["Estado Ctr"].astype(str).str.strip()
+      df_alarma_filtrado = df[estado_limpio == "Desconectado"].copy()
+    else:
+      df_alarma_filtrado = pd.DataFrame()
+      st.warning("No se encontró la columna 'Estado Ctr' en el archivo de Alarma.")
 
-        if archivo_seleccionado.startswith("Vessel"):
-          df.columns = df.iloc[2]
-          df = df.iloc[3:].reset_index(drop=True)
+    # SOLO procedemos con Vessel si el filtrado de alarma encontró datos y existe la variable
+    if not df_alarma_filtrado.empty:
+      df_vessel = cargar_archivo_individual(nombre_vessel)
 
-          if "Phase" in df_vessel.columns:
-            df_vessel = df_vessel[
-                df_vessel["Phase"].astype(str).str.strip() == "Working"
-            ]
+      if df_vessel is not None:
+        if len(df_vessel) > 4:
+          df_vessel = df_vessel.iloc[4:].reset_index(drop=True)
+          df_vessel.columns = df_vessel.iloc[0]
+          df_vessel = df_vessel.iloc[1:].reset_index(drop=True)
 
-          if "Vessel Name" in df_vessel.columns:
-            df_vessel = df_vessel[
-                df_vessel["Vessel"].astype(str).str.strip() != "GENERICA"
-            ]
+        if "Phase" in df_vessel.columns:
+          df_vessel = df_vessel[df_vessel["Phase"].astype(str).str.strip() == "Working"]
 
-          df_vessel = df_vessel.dropna(how="all")
+        if "Vessel" in df_vessel.columns:
+          df_vessel = df_vessel[df_vessel["Vessel"].astype(str).str.strip() != "GENERICA"]
 
-          columna_alarma = "Nave"
-          columna_vessel = "Vessel Name"
+        df_vessel = df_vessel.dropna(how="all")
 
-          if (
-              columna_alarma in df_alarma_filtrado.columns
-              and columna_vessel in df_vessel.columns
-          ):
-            df_resultado = pd.merge(
-                df_alarma_filtrado,
-                df_vessel,
-                left_on=columna_alarma,
-                right_on=columna_vessel,
-                how="left",
-                suffixes=("_alarma", "_vessel"),
-            )
-            df = df_resultado
-            st.success(
-                f" Visualización creada: Alarma (Estado: Desconectado) cruzado"
-                f" con {nombre_vessel}"
-            )
-          else:
-            st.warning(
-                f"No se encontró la columna '{columna_alarma}' en Alarma o"
-                f" '{columna_vessel}' en Vessel para el cruce."
-            )
-        else:
-          st.info(
-              " No hay registros con Estado 'desconectado' para realizar el"
-              " cruce."
+        columna_alarma = "Nave"
+        columna_vessel = "Vessel"
+
+        if columna_alarma in df_alarma_filtrado.columns and columna_vessel in df_vessel.columns:
+          df_resultado = pd.merge(
+              df_alarma_filtrado,
+              df_vessel,
+              left_on=columna_alarma,
+              right_on=columna_vessel,
+              how="left",
+              suffixes=("_alarma", "_vessel"),
           )
+          df = df_resultado
+          st.success(f" Visualización creada: Alarma (Desconectado) cruzado con {nombre_vessel}")
+        else:
+          st.warning(f" No se encontró la columna '{columna_alarma}' en Alarma o '{columna_vessel}' en Vessel.")
+    else:
+      st.info("ℹ No hay registros con Estado 'Desconectado' para realizar el cruce.")
 
     # ==========================================
     # ZONA DE CÁLCULOS Y MÉTRICAS
