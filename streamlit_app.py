@@ -86,10 +86,10 @@ if archivos_disponibles:
     if nombre_vessel and nombre_alarma:
       if archivo_seleccionado == nombre_alarma:
         if "Estado Ctr" in df.columns:
-          # CORREGIDO: Comparar contra "desconectado" (minúscula por el .str.lower())
           df_alarma_filtrado = df[
-              df["Estado Ctr"].astype(str).str.strip()
-              == "Desconectado"
+              df["Estado Ctr"]
+              .astype(str)
+              .str.contains("Desconectado", case=False, na=False, regex=False)
           ].copy()
         else:
           df_alarma_filtrado = pd.DataFrame()
